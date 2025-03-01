@@ -7,7 +7,7 @@ import random
 w_width, w_height = 800, 600
 balls = []
 
-hidden = False
+blink = False
 frozen = False
 speed = 5
 size = 5
@@ -41,42 +41,49 @@ class Balls:
             dy = -abs(dy)
 
         self.direction = (dx, dy)  #update direction
+    
+    def visibility(self):
+        if blink:
+            self.visible = not self.visible
 
 def display():
     glClear(GL_COLOR_BUFFER_BIT)
     glLoadIdentity()
     
-    if not hidden:
-        glPointSize(size)
-        glBegin(GL_POINTS)
-        for b in balls:
+    glPointSize(size)
+    glBegin(GL_POINTS)
+    for b in balls:
+        if b.visible:
             glColor3fv(b.color)
             glVertex2f(b.x, b.y)
-        glEnd()
-
+    glEnd()
     glutSwapBuffers()
 
 def update(value):
     if not frozen:
         for b in balls:
             b.move()
+        
+        if blink:
+            for b in balls:
+                b.visibility()
 
     glutPostRedisplay()
-    glutTimerFunc(16, update, 0)
+    glutTimerFunc(20, update, 0)
 
 def mouse(button, state, x, y):
-    global hidden
+    global blink
     if not frozen:
         if state == GLUT_DOWN:
             if button == GLUT_RIGHT_BUTTON:
                 balls.append(Balls(x, w_height - y)) 
                 print("New ball added")
             elif button == GLUT_LEFT_BUTTON:
-                hidden = not hidden 
-                if hidden:
-                    print("Blink")
+                blink = not blink
+                if blink:
+                    print("Blinking")
                 else:
-                    print("Visible")
+                    print("Not Blinking")
     glutPostRedisplay()
             
 
