@@ -2,8 +2,6 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-
-import math
 import random
 
 w_width, w_height = 900, 500
