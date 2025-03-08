@@ -149,7 +149,7 @@ def update_game(game):
 
     #diamond miss - game over
     elif d_y < 0:
-        if not game_over:  # Ensure Game Over prints only once
+        if not game_over:
             print(f"Game Over! Final Score: {score}")
         state_game_over()
         return
@@ -213,8 +213,8 @@ def mouse(button, state, x, y):
                     print("Game Paused")
                 else:
                     print("Game Resumed.")
-                    end_time = time.time()  # Reset timing
-                    glutTimerFunc(16, update_game, 0)  # Restart game updates
+                    end_time = time.time()  
+                    glutTimerFunc(16, update_game, 0)  
 
         elif (cl_x <= x <= cl_x + b_width) and (b_y <= y <= b_y + b_height):
             print(f"Goodbye!\nYour Final Score: {score}")
@@ -236,5 +236,5 @@ init()
 glutDisplayFunc(display)
 glutSpecialFunc(move_keys)
 glutMouseFunc(mouse)
-glutTimerFunc(16, update_game, 0)  # Start update loop
+glutTimerFunc(16, update_game, 0)
 glutMainLoop()
