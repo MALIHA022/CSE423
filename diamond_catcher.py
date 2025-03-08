@@ -4,7 +4,7 @@ from OpenGL.GLU import *
 import random
 import time
 
-w_width, w_height = 500, 600
+w_width, w_height = 500, 620
 
 def mpl(x1,y1,x2,y2):
     dx = int(abs(x2-x1))
@@ -57,7 +57,7 @@ d_speed = 100
 #buttons
 b_y = w_height - 50
 b_width = 40
-b_height = 40
+b_height = 30
 
 #left arrow
 la_x = 20
