@@ -50,6 +50,7 @@ c_y = 10
 
 #diamond
 d_size = 25
+d_color = (1.0, 1.0, 0.0)
 d_x = random.randint(50, w_width-50)
 d_y = w_height - 80
 d_speed = 100
@@ -75,7 +76,16 @@ end_time = time.time()
 
 
 def diamonds(x,y,size):
-    glColor3f(1.0, 1.0, 0.0)
+    #diamond border
+    glColor3f(1.0, 1.0, 1.0) 
+    glBegin(GL_POINTS)
+    mpl(x, y+size//2+1, x+size//2+1, y)  # Top-right border
+    mpl(x+size//2+1, y, x, y-size//2-1)  # Bottom-right border
+    mpl(x, y-size//2-1, x-size//2-1, y)  # Bottom-left border
+    mpl(x-size//2-1, y, x, y+size//2+1)  # Top-left border
+    glEnd()
+
+    glColor3f(*d_color)
     glBegin(GL_POINTS)
     mpl(x,y+size//2, x+size//2,y) #top-right
     mpl(x+size//2,y, x,y-size//2) #bottom-right
@@ -86,10 +96,10 @@ def diamonds(x,y,size):
 def catcher(x,y,w,h):
     glColor3f(*c_color)
     glBegin(GL_POINTS)
-    mpl(x,y, x+w,y) #bottom
-    mpl(x,y, x+w//5,y+h) #left
-    mpl(x+w,y, x+w-w//5,y+h) #right
-    mpl(x+w//5,y+h, x+w-w//5,y+h) #top
+    mpl(x, y+h, x+w, y+h)  # top
+    mpl(x, y+h, x+w//12, y) # left
+    mpl(x+w, y+h, x+w-w//12, y)  #right
+    mpl(x+w//12, y, x+w-w//12, y)  #botton
     glEnd()
 
 def left_arrow(x,y,w,h):
@@ -159,20 +169,22 @@ def update_game(game):
         glutTimerFunc(16, update_game, 0)
 
 def state_reset_diamond():
-    global d_x, d_y, paused
+    global d_x, d_y, paused, d_color
     if game_over:
         return 
     d_x = random.randint(50, w_width-50)
     d_y = w_height - 50
+    d_color = (random.random(), random.random(), random.random()) 
     paused = False
 
     glutPostRedisplay()
     glutTimerFunc(16, update_game, 0)
 
 def state_game_over():
-    global game_over, c_color
+    global game_over, c_color, d_x, d_y
     game_over = True
     c_color = (1.0, 0.0, 0.0)
+    d_x, d_y = -100, -100
     glutPostRedisplay()
 
 def state_restart():
@@ -232,6 +244,7 @@ glutInit()
 glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB)
 glutInitWindowSize(w_width, w_height)
 glutCreateWindow(b"Catch the Diamonds!")
+glutPositionWindow(400, 10)
 init()
 glutDisplayFunc(display)
 glutSpecialFunc(move_keys)
