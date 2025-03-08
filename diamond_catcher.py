@@ -151,7 +151,7 @@ def update_game(game):
     d_y = d_y - d_speed * d_time
 
     #collision - score increase
-    if(c_x < d_x + d_size) and (c_x + c_width > d_x) and (c_y < d_y + d_size) and (c_y + c_height > d_y):
+    if (c_x <= d_x <= c_x + c_width) and (d_y - d_size//2 <= c_y + c_height):
         score += 1
         print(f"Score: {score}")
         state_reset_diamond()
@@ -224,12 +224,12 @@ def mouse(button, state, x, y):
                 if paused:
                     print("Game Paused")
                 else:
-                    print("Game Resumed.")
+                    print("Game Resumed")
                     end_time = time.time()  
                     glutTimerFunc(16, update_game, 0)  
 
         elif (cl_x <= x <= cl_x + b_width) and (b_y <= y <= b_y + b_height):
-            print(f"Goodbye!\nYour Final Score: {score}")
+            print(f"Goodbye!\nFinal Score: {score}")
             glutLeaveMainLoop()
 
 
