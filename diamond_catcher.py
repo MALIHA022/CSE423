@@ -187,6 +187,40 @@ def state_restart():
     glutTimerFunc(16, update_game, 0)
     glutPostRedisplay()
 
+def move_keys(key,x,y):
+    global c_x
+    step = 20
+    if game_over or paused:
+        return
+    if key == GLUT_KEY_LEFT  and c_x>0:
+        c_x -= step
+    elif key == GLUT_KEY_RIGHT and c_x+c_width<w_width:
+        c_x += step
+    glutPostRedisplay()
+
+def mouse(button, state, x, y):
+    global paused, score, la_x, p_x, cl_x, b_y, b_width, b_height, end_time
+    if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
+        y = w_height - y
+
+        if (la_x <= x <= la_x + b_width) and (b_y <= y <= b_y + b_height):
+            state_restart()
+        
+        elif (p_x <= x <= p_x + b_width) and (b_y <= y <= b_y + b_height):
+            if not game_over:
+                paused = not paused
+                if paused:
+                    print("Game Paused")
+                else:
+                    print("Game Resumed.")
+                    end_time = time.time()  # Reset timing
+                    glutTimerFunc(16, update_game, 0)  # Restart game updates
+
+        elif (cl_x <= x <= cl_x + b_width) and (b_y <= y <= b_y + b_height):
+            print(f"Goodbye!\nYour Final Score: {score}")
+            glutLeaveMainLoop()
+
+
 def init():
     glClearColor(0.0, 0.0, 0.0, 1.0)
     glMatrixMode(GL_PROJECTION)
@@ -200,5 +234,7 @@ glutInitWindowSize(w_width, w_height)
 glutCreateWindow(b"Catch the Diamonds!")
 init()
 glutDisplayFunc(display)
+glutSpecialFunc(move_keys)
+glutMouseFunc(mouse)
 glutTimerFunc(16, update_game, 0)  # Start update loop
 glutMainLoop()
