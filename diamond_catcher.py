@@ -6,7 +6,52 @@ import time
 
 w_width, w_height = 500, 620
 
+def find_zone(x1, y1, x2, y2):
+    dx = x2 - x1
+    dy = y2 - y1
+    if dx >= 0 and dy >= 0 and abs(dx)>abs(dy):  
+        return 0
+    elif dx >= 0 and dy >= 0 and abs(dx)<abs(dy):
+        return 1
+    elif dx <= 0 and dy >= 0 and abs(dx)<abs(dy):
+        return 2
+    elif dx <= 0 and dy >= 0 and abs(dx)>abs(dy): 
+        return 3
+    elif dx <= 0 and dy <= 0 and abs(dx)>abs(dy): 
+        return 4
+    elif dx <= 0 and dy <= 0 and abs(dx)<abs(dy): 
+        return 5
+    elif dx >= 0 and dy <= 0 and abs(dx)<abs(dy): 
+        return 6
+    elif dx >= 0 and dy <= 0 and abs(dx)>abs(dy): 
+        return 7
+
+def convert_zone(x, y, zone):
+    if zone == 1:  
+        return y, x
+    elif zone == 2:  
+        return -y, x
+    elif zone == 3:  
+        return -x, y
+    elif zone == 4:  
+        return -x, -y
+    elif zone == 5:  
+        return -y, -x
+    elif zone == 6:
+        return  y, -x
+    elif zone == 7:
+        return x, -y
+    else: #zone 0
+        return x, y
+
+
 def mpl(x1,y1,x2,y2):
+    zone = find_zone(x1, y1, x2, y2) #actual zone
+    #convert to zone 0
+    x1, y1 = convert_zone(x1, y1, zone)
+    x2, y2 = convert_zone(x2, y2, zone)
+
+    #mpl algo
     dx = int(abs(x2-x1))
     dy = int(abs(y2-y1))
 
@@ -32,6 +77,8 @@ def mpl(x1,y1,x2,y2):
                 d -= 2*dx
             x += inc_x
             d += 2*dy
+            org_x, org_y = convert_zone(x, y, zone) #original zone
+            glVertex2i(org_x, org_y)
     else:
         d = 2*dx - dy
         for i in range(dy):
@@ -41,10 +88,12 @@ def mpl(x1,y1,x2,y2):
                 d -= 2*dy
             y += inc_y
             d += 2*dx
+            org_x, org_y = convert_zone(x, y, zone) #original zone
+            glVertex2i(org_x, org_y)
 
 #catcher
 c_width, c_height = 120, 20
-c_color = (1.0,1.0,1.0)
+c_color = (1.0, 1.0, 1.0)
 c_x = (w_width - c_width)//2
 c_y = 10
 
@@ -97,9 +146,9 @@ def catcher(x,y,w,h):
     glColor3f(*c_color)
     glBegin(GL_POINTS)
     mpl(x, y+h, x+w, y+h)  # top
-    mpl(x, y+h, x+w//12, y) # left
-    mpl(x+w, y+h, x+w-w//12, y)  #right
-    mpl(x+w//12, y, x+w-w//12, y)  #botton
+    mpl(x, y+h, x+w//6, y) # left
+    mpl(x+w, y+h, x+w-w//6, y)  #right
+    mpl(x+w//6, y, x+w-w//6, y)  #botton
     glEnd()
 
 def left_arrow(x,y,w,h):
