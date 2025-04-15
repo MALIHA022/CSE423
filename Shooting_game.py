@@ -4,26 +4,26 @@ from OpenGL.GLU import *
 import math
 import random
 
-# Camera-related variables
+# Camera
 camera_pos = (0,500,500)
 
-fovY = 130  # Field of view
-GRID_LENGTH = 100  # Length of grid lines
+fovY = 120  
+GRID_LENGTH = 100  
 GRID_SIZE = 12
 rand_var = 423
 
 # Game state
 player_pos = [0, 0, 0]
 player_angle = 0
-camera_mode = "third"  # or "first"
+camera_mode = "third"  
 cheat_mode = False
 cheat_vision = False
 game_over = False
 
-# Bullets: list of dicts with 'pos' and 'dir'
+# Bullets
 bullets = []
 
-# Enemies: list of dicts with 'pos' and 'size_scale'
+# Enemies
 enemies = []
 num_enemies = 5
 
@@ -126,13 +126,48 @@ def draw_player():
 
 
 def draw_bullets():
-    glColor3f(1, 1, 0)
+    glColor3f(1, 0, 0)
     for bullet in bullets:
         glPushMatrix()
-        glTranslatef(*bullet['pos'])
-        glutSolidCube(15)
+        glTranslatef(*bullet['bullet_pos'])
+        glutSolidCube(10)
         glPopMatrix()
 
+def draw_enemy(e):
+        glPushMatrix()
+        glTranslatef(*e['enemy_pos'])
+        glScalef(e["scale"], e["scale"], e["scale"]) 
+
+        #body
+        glColor3f(1, 0, 0)
+        glPushMatrix()
+        glTranslatef(0, 0, 40)
+        gluSphere(gluNewQuadric(), 40, 20, 20) #quadric, radius, slices, stacks
+        glPopMatrix()
+
+        #haed
+        glColor3f(0,0,0)
+        glPushMatrix()
+        glTranslatef(0, 0, 80)
+        gluSphere(gluNewQuadric(), 30, 20, 20)
+        glPopMatrix()
+
+        glPopMatrix()
+
+def spawn_enemy():
+    while True: #avoiding center
+        x = random.randint(-600, 500)
+        y = random.randint(-600, 500)
+        
+        if abs(x) > 200 or abs(y) > 200:
+            break
+
+    return {
+        'enemy_pos': [x, y, 0], #position
+        'scale': 1.0, #size
+        'scale_dir': 0.005 #pulse
+    }
+enemies = [spawn_enemy() for _ in range(num_enemies)]
 
 def mouseListener(button, state, x, y):
     global camera_mode
@@ -145,13 +180,13 @@ def mouseListener(button, state, x, y):
         # Offset of the gun tip
         gun_length = 140 
         gun_right = 50
-        gun_up = -10
+        gun_up = 10
 
         bullet_start = [player_pos[0] + gun_right * math.sin(rad) + dir_x * gun_length,
                         player_pos[1] - gun_right * math.cos(rad) + dir_y * gun_length,
                         player_pos[2] + gun_up]
 
-        bullets.append({'pos': bullet_start, 'dir': (dir_x, dir_y)})
+        bullets.append({'bullet_pos': bullet_start, 'dir': (dir_x, dir_y)})
 
     elif button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN and not game_over:
         if camera_mode == "third":
@@ -170,32 +205,30 @@ def keyboardListener(key, x, y):
     global player_pos, player_angle, camera_mode
 
     speed = 20
-    angle_step = 10
+    angle_step = 5
 
-    if key == b'w':
-        rad = math.radians(player_angle)
-        player_pos[0] += math.cos(rad) * speed
-        player_pos[1] += math.sin(rad) * speed
+    if key == b'w': #move backward
+        angle = math.radians(player_angle)
+        player_pos[0] += math.cos(angle) * speed
+        player_pos[1] += math.sin(angle) * speed
 
-    elif key == b's':
-        rad = math.radians(player_angle)
-        player_pos[0] -= math.cos(rad) * speed
-        player_pos[1] -= math.sin(rad) * speed
+    elif key == b's': #move forward
+        angle = math.radians(player_angle)
+        player_pos[0] -= math.cos(angle) * speed
+        player_pos[1] -= math.sin(angle) * speed
 
-    elif key == b'a':
+    elif key == b'a':  #rotate left
         player_angle += angle_step
 
-    elif key == b'd':
+    elif key == b'd': #rotate right
         player_angle -= angle_step
     
-    elif key == b"c":
-        if camera_mode == "third":
-            camera_mode = "first"
-        else:
-            camera_mode = "third"
-            print(f"Switched to {camera_mode}-person mode")
-
-
+    # elif key == b"c": #cheat mode
+    #     if camera_mode == "third":
+    #         camera_mode = "first"
+    #     else:
+    #         camera_mode = "third"
+            
 
 def specialKeyListener(key, x, y):
     """
@@ -203,86 +236,110 @@ def specialKeyListener(key, x, y):
     """
     global camera_pos
     x, y, z = camera_pos
-    # Move camera up (UP arrow key)
-    if key == GLUT_KEY_UP:
+
+    if key == GLUT_KEY_UP: # Move camera up
         y += 1
 
-    # Move camera down (DOWN arrow key)
-    if key == GLUT_KEY_DOWN:
+    if key == GLUT_KEY_DOWN: # Move camera down 
         y-= 1
-    # moving camera left (LEFT arrow key)
-    if key == GLUT_KEY_LEFT:
-        x -= 1  # Small angle decrement for smooth movement
 
-    # moving camera right (RIGHT arrow key)
-    if key == GLUT_KEY_RIGHT:
-        x += 1  # Small angle increment for smooth movement
+    if key == GLUT_KEY_LEFT: # Move camera left
+        x -= 1
+
+    if key == GLUT_KEY_RIGHT:  # Move camera right 
+        x += 1
 
     camera_pos = (x, y, z)
 
 def setupCamera():
-    """
-    Configures the camera's projection and view settings.
-    Uses a perspective projection and positions the camera to look at the target.
-    """
-    glMatrixMode(GL_PROJECTION)  # Switch to projection matrix mode
-    glLoadIdentity()  # Reset the projection matrix
-    # Set up a perspective projection (field of view, aspect ratio, near clip, far clip)
-    gluPerspective(fovY, 1.25, 0.1, 1500) # Think why aspect ration is 1.25?
-    glMatrixMode(GL_MODELVIEW)  # Switch to model-view matrix mode
-    glLoadIdentity()  # Reset the model-view matrix
+    glMatrixMode(GL_PROJECTION)  
+    glLoadIdentity()  
+    gluPerspective(fovY, 1.25, 0.1, 1500)  #(field of view, aspect ratio, near clip, far clip)
+    glMatrixMode(GL_MODELVIEW)  
+    glLoadIdentity()
 
-    # Extract camera position and look-at target
     if camera_mode == "third":
         x, y, z = camera_pos
-        # Position the camera and set its orientation
-        gluLookAt(x, y, z,  # Camera position
-                  player_pos[0], player_pos[1], player_pos[2],  # Look-at target
-                  0, 0, 1)  # Up vector (z-axis)
+        gluLookAt(x,y,z, 0,0,0, 0,0,1)  
     else:
-        # First-person: follow the gun direction
-        rad = math.radians(player_angle)
-
-        # Gun offset values (same as used for bullet)
+        angle = math.radians(player_angle)
         gun_length = 50
         gun_right = 30
         gun_up = 40
 
-        # Compute gun tip position
-        cam_x = player_pos[0] + gun_right * math.sin(rad) - math.cos(rad) * gun_length
-        cam_y = player_pos[1] - gun_right * math.cos(rad) - math.sin(rad) * gun_length
+        # gun tip position
+        cam_x = player_pos[0] + gun_right * math.sin(angle) - math.cos(angle) * gun_length
+        cam_y = player_pos[1] - gun_right * math.cos(angle) - math.sin(angle) * gun_length
         cam_z = player_pos[2] + gun_up
 
-        # Compute look-at target slightly ahead in the direction player is facing
-        look_x = cam_x + (-math.cos(rad)) * 100
-        look_y = cam_y + (-math.sin(rad)) * 100
+        look_x = cam_x + (-math.cos(angle)) * 100
+        look_y = cam_y + (-math.sin(angle)) * 100
         look_z = cam_z
 
-        gluLookAt(cam_x, cam_y, cam_z,  # Camera position (gun tip)
-                  look_x, look_y, look_z,  # Look-at target
-                  0, 0, 1)  # Up vector
+        gluLookAt(cam_x, cam_y, cam_z, look_x, look_y, look_z, 0, 0, 1)  
 
 
 def idle():
-    global bullets, missed_bullets
+    global bullets, missed_bullets, score, life, game_over
 
     # Move bullets
     for bullet in bullets:
-        bullet['pos'][0] += bullet['dir'][0] * 10
-        bullet['pos'][1] += bullet['dir'][1] * 10
+        bullet['bullet_pos'][0] += bullet['dir'][0] * 10
+        bullet['bullet_pos'][1] += bullet['dir'][1] * 10
 
-    # Remove bullets that went too far
-    bullets = [b for b in bullets if abs(b['pos'][0]) < 1000 and abs(b['pos'][1]) < 1000]
+    b = 0
+    while b < len(bullets):
+        x, y, z = bullets[b]['bullet_pos']
+        if abs(x) >= 600 or abs(y) >= 600:
+            bullets.pop(b)
+            missed_bullets += 1
+        else:
+            b += 1
+
+    for e in enemies:
+        # Move towards player
+        dx = player_pos[0] - e['enemy_pos'][0]
+        dy = player_pos[1] - e['enemy_pos'][1]
+        dist = math.sqrt(dx**2 + dy**2)
+        if dist > 1:
+            e['enemy_pos'][0] += dx / dist * 0.05  # Move speed
+            e['enemy_pos'][1] += dy / dist * 0.05
+
+        # Pulse effect
+        e['scale'] += e['scale_dir']
+        if e['scale'] >= 1.2 or e['scale'] <= 0.8:
+            e['scale_dir'] *= -1
+    
+    #hit enemies
+    new_enemies = []
+    for e in enemies:
+        hit = False
+        for b in bullets:
+            bx, by, bz = b['bullet_pos']
+            ex, ey, ez = e['enemy_pos']
+            if abs(bx - ex) < 30 and abs(by - ey) < 30 and abs(bz - ez) < 30:
+                hit = True
+                score += 1
+                break
+       
+        if hit:
+            new_enemies.append(spawn_enemy())  
+        else:
+            new_enemies.append(e)
+    enemies[:] = new_enemies
+
+    if missed_bullets == 10:
+        game_over = True
 
     glutPostRedisplay()
 
 
 def showScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glLoadIdentity()  # Reset modelview matrix
-    glViewport(0, 0, 1000, 700)  # Set viewport size
+    glLoadIdentity()  
+    glViewport(0, 0, 1000, 700)  
 
-    setupCamera()  # Configure camera perspective
+    setupCamera()
 
     draw_grid(GRID_SIZE)
     # draw_border_walls()
@@ -294,20 +351,19 @@ def showScreen():
 
     draw_player()
     draw_bullets()
+    for e in enemies:
+        draw_enemy(e)
 
-    # Swap buffers for smooth rendering (double buffering)
     glutSwapBuffers()
 
 
-
-# Main function to set up OpenGL window and loop
 def main():
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)  # Double buffering, RGB color, depth test
     glutInitWindowSize(1000, 600)  # Window size
     glutInitWindowPosition(0, 0)  # Window position
     wind = glutCreateWindow(b"3D OpenGL Intro")  # Create the window
-
+    
     glutDisplayFunc(showScreen)  # Register display function
     glutKeyboardFunc(keyboardListener)  # Register keyboard listener
     glutSpecialFunc(specialKeyListener)
