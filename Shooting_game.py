@@ -230,7 +230,7 @@ def keyboardListener(key, x, y):
     #         camera_mode = "third"
             
 
-            
+
 def specialKeyListener(key, x, y):
     """
     Handles special key inputs (arrow keys) for adjusting the camera angle and height.
@@ -279,8 +279,7 @@ def setupCamera():
 
         gluLookAt(cam_x, cam_y, cam_z, look_x, look_y, look_z, 0, 0, 1)  
 
-
-def idle():
+def game_setup():
     global bullets, missed_bullets, score, life, game_over
 
     # Move bullets
@@ -332,6 +331,8 @@ def idle():
     if missed_bullets == 10:
         game_over = True
 
+def idle():
+    game_setup()
     glutPostRedisplay()
 
 
