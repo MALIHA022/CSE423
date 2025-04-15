@@ -138,26 +138,36 @@ def mouseListener(button, state, x, y):
     global camera_mode
 
     if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN and not game_over:
-        # Fire a bullet from gun's tip
         rad = math.radians(player_angle)
-        dir_x = math.cos(rad)
-        dir_y = math.sin(rad)
-        bullet_start = [
-            player_pos[0] + dir_x * 60,
-            player_pos[1] + dir_y * 60,
-            player_pos[2] + 30
-        ]
+        dir_x = -math.cos(rad)
+        dir_y = -math.sin(rad)
+
+        # Offset of the gun tip
+        gun_length = 140 
+        gun_right = 50
+        gun_up = -10
+
+        bullet_start = [player_pos[0] + gun_right * math.sin(rad) + dir_x * gun_length,
+                        player_pos[1] - gun_right * math.cos(rad) + dir_y * gun_length,
+                        player_pos[2] + gun_up]
+
         bullets.append({'pos': bullet_start, 'dir': (dir_x, dir_y)})
 
-    elif button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
-        # Toggle camera mode
-        camera_mode = "first" if camera_mode == "third" else "third"
+    elif button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN and not game_over:
+        if camera_mode == "third":
+            camera_mode = "first"
+        else:
+            camera_mode = "third"
+            print(f"Switched to {camera_mode}-person mode")
+        
+        glutPostRedisplay()
+  
 
 def keyboardListener(key, x, y):
     """
     Handles keyboard inputs for player movement, gun rotation, camera updates, and cheat mode toggles.
     """
-    global player_pos, player_angle
+    global player_pos, player_angle, camera_mode
 
     speed = 20
     angle_step = 10
@@ -177,6 +187,14 @@ def keyboardListener(key, x, y):
 
     elif key == b'd':
         player_angle -= angle_step
+    
+    elif key == b"c":
+        if camera_mode == "third":
+            camera_mode = "first"
+        else:
+            camera_mode = "third"
+            print(f"Switched to {camera_mode}-person mode")
+
 
 
 def specialKeyListener(key, x, y):
@@ -215,11 +233,34 @@ def setupCamera():
     glLoadIdentity()  # Reset the model-view matrix
 
     # Extract camera position and look-at target
-    x, y, z = camera_pos
-    # Position the camera and set its orientation
-    gluLookAt(x, y, z,  # Camera position
-              0, 0, 0,  # Look-at target
-              0, 0, 1)  # Up vector (z-axis)
+    if camera_mode == "third":
+        x, y, z = camera_pos
+        # Position the camera and set its orientation
+        gluLookAt(x, y, z,  # Camera position
+                  player_pos[0], player_pos[1], player_pos[2],  # Look-at target
+                  0, 0, 1)  # Up vector (z-axis)
+    else:
+        # First-person: follow the gun direction
+        rad = math.radians(player_angle)
+
+        # Gun offset values (same as used for bullet)
+        gun_length = 50
+        gun_right = 30
+        gun_up = 40
+
+        # Compute gun tip position
+        cam_x = player_pos[0] + gun_right * math.sin(rad) - math.cos(rad) * gun_length
+        cam_y = player_pos[1] - gun_right * math.cos(rad) - math.sin(rad) * gun_length
+        cam_z = player_pos[2] + gun_up
+
+        # Compute look-at target slightly ahead in the direction player is facing
+        look_x = cam_x + (-math.cos(rad)) * 100
+        look_y = cam_y + (-math.sin(rad)) * 100
+        look_z = cam_z
+
+        gluLookAt(cam_x, cam_y, cam_z,  # Camera position (gun tip)
+                  look_x, look_y, look_z,  # Look-at target
+                  0, 0, 1)  # Up vector
 
 
 def idle():
