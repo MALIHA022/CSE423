@@ -167,7 +167,11 @@ def spawn_enemy():
         'scale': 1.0, #size
         'scale_dir': 0.005 #pulse
     }
-enemies = [spawn_enemy() for _ in range(num_enemies)]
+    
+for n in range(num_enemies):
+    enemy = spawn_enemy()
+    enemy["collide"] = False 
+    enemies.append(enemy)
 
 def mouseListener(button, state, x, y):
     global camera_mode
@@ -327,8 +331,24 @@ def game_setup():
         else:
             new_enemies.append(e)
     enemies[:] = new_enemies
+    
+    for e in enemies:
+        collide = False
+        ex,ey,ez = e["enemy_pos"]
+        e["collide"] = False
+        px,py,pz = player_pos
 
-    if missed_bullets == 10:
+        collision =  abs(px - ex) < 30 and abs(py - ey) < 30 and abs(pz - ez) < 30
+            
+        if collision:
+            if not e["collide"]:  
+                if life > 0:
+                    life -= 1
+                e["collide"] = True
+        else:
+            e["collide"] = False
+
+    if collide or missed_bullets == 10 or life == 0 :
         game_over = True
 
 def idle():
