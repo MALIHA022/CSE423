@@ -32,7 +32,7 @@ life = 5
 missed_bullets = 0
 score = 0
 
-def draw_text(x, y, text, font = GLUT_BITMAP_HELVETICA_12):
+def draw_text(x, y, text, font = GLUT_BITMAP_HELVETICA_12): # type: ignore
     glColor3f(1,1,1)
     glMatrixMode(GL_PROJECTION)
     glPushMatrix()
@@ -74,7 +74,41 @@ def draw_grid(GRID_SIZE):
     glEnd()
 
 def draw_border_walls():
-    pass
+    wall_height = 100
+    offset = GRID_LENGTH * GRID_SIZE // 2
+
+    glBegin(GL_QUADS)
+
+    # Bottom wall
+    glColor3f(1, 1, 1)
+    glVertex3f(-offset, -offset, 0)
+    glVertex3f(offset, -offset, 0)
+    glVertex3f(offset, -offset, wall_height)
+    glVertex3f(-offset, -offset, wall_height)
+
+    # Top wall
+    glColor3f(0.01, 0.9, 1)
+    glVertex3f(-offset, offset, 0)
+    glVertex3f(offset, offset, 0)
+    glVertex3f(offset, offset, wall_height)
+    glVertex3f(-offset, offset, wall_height)
+
+    # Left wall
+    glColor3f(0, 0, 1)
+    glVertex3f(-offset, -offset, 0)
+    glVertex3f(-offset, offset, 0)
+    glVertex3f(-offset, offset, wall_height)
+    glVertex3f(-offset, -offset, wall_height)
+
+    # Right wall 
+    glColor3f(0.01, 0.9, 0.01)
+    glVertex3f(offset, -offset, 0)
+    glVertex3f(offset, offset, 0)
+    glVertex3f(offset, offset, wall_height)
+    glVertex3f(offset, -offset, wall_height)
+
+    glEnd()
+
 
 def draw_player():
     glPushMatrix()
@@ -364,7 +398,7 @@ def showScreen():
     setupCamera()
 
     draw_grid(GRID_SIZE)
-    # draw_border_walls()
+    draw_border_walls()
 
     # game info text
     draw_text(10, 460, f"Player Life Remaining: {life} ")
