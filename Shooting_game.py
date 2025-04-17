@@ -244,7 +244,7 @@ def keyboardListener(key, x, y):
     """
     Handles keyboard inputs for player movement, gun rotation, camera updates, and cheat mode toggles.
     """
-    global player_pos, player_angle, camera_mode, min_bound, max_bound
+    global player_pos, player_angle, camera_mode, min_bound, max_bound, life, missed_bullets, score, game_over
 
     speed = 20
     angle_step = 5
@@ -285,8 +285,24 @@ def keyboardListener(key, x, y):
         #         camera_mode = "first"
         #     else:
         #         camera_mode = "third"
-                
-
+        
+    if key == b'r' and game_over: #restart
+        bullets.clear()
+        enemies.clear()
+        for _ in range(num_enemies):
+            enemy = spawn_enemy()
+            enemy['collide'] = False
+            enemies.append(enemy)
+            
+        score = 0
+        missed_bullets = 0
+        life = 5
+        game_over = False
+        player_pos[:] = [0, 0, 0]
+        player_angle = 0
+        print("Game restarted!")
+            
+        glutPostRedisplay()
 
 def specialKeyListener(key, x, y):
     """
