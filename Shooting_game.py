@@ -352,7 +352,8 @@ def game_setup():
             missed_bullets += 1
         else:
             b += 1
-    if missed_bullets >= 10:
+
+    if missed_bullets >= 10 or life == 0:
         game_over = True
         enemies.clear()
 
@@ -372,6 +373,8 @@ def game_setup():
     
     #hit enemies
     new_enemies = []
+    hit_bullets = []
+
     for e in enemies:
         hit = False
         for b in bullets:
@@ -380,13 +383,18 @@ def game_setup():
             if abs(bx - ex) < 30 and abs(by - ey) < 30 and abs(bz - ez) < 30:
                 hit = True
                 score += 1
+                hit_bullets.append(b)
                 break
        
         if hit:
             new_enemies.append(spawn_enemy())  
         else:
             new_enemies.append(e)
+    for b in hit_bullets:
+        if b in bullets:
+            bullets.remove(b) 
     enemies[:] = new_enemies
+    
     
     # enemy and player collision
     if not game_over:
