@@ -31,6 +31,8 @@ num_enemies = 5
 life = 5
 missed_bullets = 0
 score = 0
+min_bound = -GRID_SIZE * GRID_LENGTH // 2
+max_bound = GRID_SIZE * GRID_LENGTH // 2
 
 def draw_text(x, y, text, font = GLUT_BITMAP_HELVETICA_12): # type: ignore
     glColor3f(1,1,1)
@@ -112,10 +114,11 @@ def draw_border_walls():
 
 def draw_player():
     glPushMatrix()
-    
-    # Apply global player transform
     glTranslatef(*player_pos)
-    glRotatef(player_angle, 0, 0, 1)  # Everything now rotates together
+    glRotatef(player_angle, 0, 0, 1)  
+
+    if game_over:
+        glRotatef(90,0,1,0)
 
     # Left foot
     glColor3f(0, 0, 1)
@@ -210,21 +213,22 @@ for n in range(num_enemies):
 def mouseListener(button, state, x, y):
     global camera_mode
 
-    if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN and not game_over:
-        rad = math.radians(player_angle)
-        dir_x = -math.cos(rad)
-        dir_y = -math.sin(rad)
+    if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
+        if not game_over:
+            rad = math.radians(player_angle)
+            dir_x = -math.cos(rad)
+            dir_y = -math.sin(rad)
 
-        # Offset of the gun tip
-        gun_length = 140 
-        gun_right = 50
-        gun_up = 10
+            # Offset of the gun tip
+            gun_length = 140 
+            gun_right = 50
+            gun_up = 10
 
-        bullet_start = [player_pos[0] + gun_right * math.sin(rad) + dir_x * gun_length,
-                        player_pos[1] - gun_right * math.cos(rad) + dir_y * gun_length,
-                        player_pos[2] + gun_up]
+            bullet_start = [player_pos[0] + gun_right * math.sin(rad) + dir_x * gun_length,
+                            player_pos[1] - gun_right * math.cos(rad) + dir_y * gun_length,
+                            player_pos[2] + gun_up]
 
-        bullets.append({'bullet_pos': bullet_start, 'dir': (dir_x, dir_y)})
+            bullets.append({'bullet_pos': bullet_start, 'dir': (dir_x, dir_y)})
 
     elif button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN and not game_over:
         if camera_mode == "third":
@@ -240,33 +244,48 @@ def keyboardListener(key, x, y):
     """
     Handles keyboard inputs for player movement, gun rotation, camera updates, and cheat mode toggles.
     """
-    global player_pos, player_angle, camera_mode
+    global player_pos, player_angle, camera_mode, min_bound, max_bound
 
     speed = 20
     angle_step = 5
+    if not game_over:
+        if key == b'w':  # move forward
+            angle = math.radians(player_angle)
+            dx = -math.cos(angle) * speed
+            dy = -math.sin(angle) * speed
 
-    if key == b'w': #move backward
-        angle = math.radians(player_angle)
-        player_pos[0] += math.cos(angle) * speed
-        player_pos[1] += math.sin(angle) * speed
+            new_x = player_pos[0] + dx
+            new_y = player_pos[1] + dy
 
-    elif key == b's': #move forward
-        angle = math.radians(player_angle)
-        player_pos[0] -= math.cos(angle) * speed
-        player_pos[1] -= math.sin(angle) * speed
+            if min_bound <= new_x <= max_bound and min_bound <= new_y <= max_bound:
+                player_pos[0] = new_x
+                player_pos[1] = new_y
 
-    elif key == b'a':  #rotate left
-        player_angle += angle_step
+        elif key == b's':  # move backward
+            angle = math.radians(player_angle)
+            dx = math.cos(angle) * speed
+            dy = math.sin(angle) * speed
 
-    elif key == b'd': #rotate right
-        player_angle -= angle_step
-    
-    # elif key == b"c": #cheat mode
-    #     if camera_mode == "third":
-    #         camera_mode = "first"
-    #     else:
-    #         camera_mode = "third"
-            
+            new_x = player_pos[0] + dx
+            new_y = player_pos[1] + dy
+
+            if min_bound <= new_x <= max_bound and min_bound <= new_y <= max_bound:
+                player_pos[0] = new_x
+                player_pos[1] = new_y
+
+
+        elif key == b'a':  #rotate left
+            player_angle += angle_step
+
+        elif key == b'd': #rotate right
+            player_angle -= angle_step
+        
+        # elif key == b"c": #cheat mode
+        #     if camera_mode == "third":
+        #         camera_mode = "first"
+        #     else:
+        #         camera_mode = "third"
+                
 
 
 def specialKeyListener(key, x, y):
@@ -275,18 +294,18 @@ def specialKeyListener(key, x, y):
     """
     global camera_pos
     x, y, z = camera_pos
+    if not game_over:
+        if key == GLUT_KEY_UP: # Move camera up
+            y += 1
 
-    if key == GLUT_KEY_UP: # Move camera up
-        y += 1
+        if key == GLUT_KEY_DOWN: # Move camera down 
+            y-= 1
 
-    if key == GLUT_KEY_DOWN: # Move camera down 
-        y-= 1
+        if key == GLUT_KEY_LEFT: # Move camera left
+            x -= 1
 
-    if key == GLUT_KEY_LEFT: # Move camera left
-        x -= 1
-
-    if key == GLUT_KEY_RIGHT:  # Move camera right 
-        x += 1
+        if key == GLUT_KEY_RIGHT:  # Move camera right 
+            x += 1
 
     camera_pos = (x, y, z)
 
@@ -320,7 +339,7 @@ def setupCamera():
 def game_setup():
     global bullets, missed_bullets, score, life, game_over
 
-    # Move bullets
+    # fire bullets
     for bullet in bullets:
         bullet['bullet_pos'][0] += bullet['dir'][0] * 10
         bullet['bullet_pos'][1] += bullet['dir'][1] * 10
@@ -333,9 +352,12 @@ def game_setup():
             missed_bullets += 1
         else:
             b += 1
+    if missed_bullets >= 10:
+        game_over = True
+        enemies.clear()
 
+    # enemies Move towards player
     for e in enemies:
-        # Move towards player
         dx = player_pos[0] - e['enemy_pos'][0]
         dy = player_pos[1] - e['enemy_pos'][1]
         dist = math.sqrt(dx**2 + dy**2)
@@ -366,24 +388,24 @@ def game_setup():
             new_enemies.append(e)
     enemies[:] = new_enemies
     
-    for e in enemies:
-        collide = False
-        ex,ey,ez = e["enemy_pos"]
-        e["collide"] = False
-        px,py,pz = player_pos
-
-        collision =  abs(px - ex) < 30 and abs(py - ey) < 30 and abs(pz - ez) < 30
-            
-        if collision:
-            if not e["collide"]:  
+    # enemy and player collision
+    if not game_over:
+        for e in enemies:
+            ex, ey, ez = e["enemy_pos"]
+            px, py, pz = player_pos
+    
+            # Collision detection
+            collision = abs(px - ex) < 100 and abs(py - ey) < 100 and abs(pz - ez) < 100
+    
+            if collision:
                 if life > 0:
                     life -= 1
-                e["collide"] = True
-        else:
-            e["collide"] = False
-
-    if collide or missed_bullets == 10 or life == 0 :
-        game_over = True
+                    enemies.remove(e)     
+                    enemies.append(spawn_enemy()) 
+                else:
+                    game_over = True
+                    enemies.clear()  
+                break  
 
 def idle():
     game_setup()
@@ -401,9 +423,13 @@ def showScreen():
     draw_border_walls()
 
     # game info text
-    draw_text(10, 460, f"Player Life Remaining: {life} ")
-    draw_text(10, 440, f"Game Score: {score}")
-    draw_text(10, 420, f"Player Bullet Missed: {missed_bullets}")
+    if not game_over:
+        draw_text(10, 460, f"Player Life Remaining: {life} ")
+        draw_text(10, 440, f"Game Score: {score}")
+        draw_text(10, 420, f"Player Bullet Missed: {missed_bullets}")
+    else:
+        draw_text(10, 460, f"Game is Over. Your score is {score}.")
+        draw_text(10, 440, f'Press "R" to RESTART the Game.')
 
     draw_player()
     draw_bullets()
