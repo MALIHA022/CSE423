@@ -232,6 +232,7 @@ def mouseListener(button, state, x, y):
                             player_pos[2] + gun_up]
 
             bullets.append({'bullet_pos': bullet_start, 'dir': (dir_x, dir_y)})
+            print("Player bullet fired!")
 
     elif button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN and not game_over:
         if camera_mode == "third":
@@ -287,10 +288,14 @@ def keyboardListener(key, x, y):
             cheat = not cheat
             if cheat:
                 cheat_mode()
+            else:
+                gun = False
         
         elif key == b"v": #toggle automatic gun cam
             if camera_mode == "first" and cheat:
                 gun = not gun
+            if not cheat:
+                gun = False
                 
     if key == b'r' and game_over: #restart
         bullets.clear()
@@ -358,7 +363,7 @@ def setupCamera():
         cam_y = player_pos[1] - gun_right * math.cos(angle) - math.sin(angle) * gun_length
         cam_z = player_pos[2] + gun_up
 
-        if cheat and gun:
+        if camera_mode == "first" and cheat and gun:
             look_x = cam_x + (-math.cos(angle)) * 100
             look_y = cam_y + (-math.sin(angle)) * 100
             look_z = cam_z
@@ -409,6 +414,7 @@ def enemy_player_interaction():
             if collision:
                 if life > 0:
                     life -= 1
+                    print(f"Remaining Player life: {life}")
                     enemies.remove(e)     
                     enemies.append(spawn_enemy()) 
                 else:
@@ -429,6 +435,7 @@ def shoot():
         if abs(x) >= 600 or abs(y) >= 600:
             bullets.pop(b)
             missed_bullets += 1
+            print(f"Bullet missed: {missed_bullets}")
         else:
             b += 1
 
@@ -461,7 +468,6 @@ def hit_enemy():
             bullets.remove(b) 
     enemies[:] = new_enemies
     
-
 def cheat_mode():
     global player_angle, player_pos, score, bullets, enemies
 
@@ -472,7 +478,6 @@ def cheat_mode():
         rad = math.radians(player_angle)
         dir_x = -math.cos(rad)
         dir_y = -math.sin(rad)
-
 
         # Gun tip offset
         gun_length = 140 
@@ -505,6 +510,8 @@ def cheat_mode():
                 dir_to_enemy = (dx/length, dy/length, dz/length)
 
                 bullets.append({'bullet_pos': [bx, by, bz], 'dir': dir_to_enemy})
+                print("Player bullet fired!")
+
                 score += 1
                 enemies.remove(e)
                 enemies.append(spawn_enemy())
