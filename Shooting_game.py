@@ -35,7 +35,9 @@ max_bound = GRID_SIZE * GRID_LENGTH // 2
 #cheat
 cheat = False
 gun = False
-cheat_rotate = 1.0
+cheat_rotation = 0
+can_fire = True
+cheat_move_angle = 0
 
 def draw_text(x, y, text, font = GLUT_BITMAP_HELVETICA_18): # type: ignore
     glColor3f(1,1,1)
@@ -49,7 +51,7 @@ def draw_text(x, y, text, font = GLUT_BITMAP_HELVETICA_18): # type: ignore
     glPushMatrix()
     glLoadIdentity()
     
-    # Draw text at (x, y) in screen coordinates
+    # Draw text 
     glRasterPos2f(x, y)
     for ch in text:
         glutBitmapCharacter(font, ord(ch))
@@ -195,7 +197,7 @@ def draw_enemy(e):
         glPopMatrix()
 
 def spawn_enemy():
-    while True: #avoiding center
+    while True: # avoiding center
         x = random.randint(-600, 500)
         y = random.randint(-600, 500)
         
@@ -222,7 +224,7 @@ def mouseListener(button, state, x, y):
             dir_x = -math.cos(rad)
             dir_y = -math.sin(rad)
 
-            # Offset of the gun tip
+            # gun tip
             gun_length = 140 
             gun_right = 50
             gun_up = 10
@@ -248,9 +250,13 @@ def keyboardListener(key, x, y):
     """
     Handles keyboard inputs for player movement, gun rotation, camera updates, and cheat mode toggles.
     """
-    global player_pos, player_angle, camera_mode, min_bound, max_bound, life, missed_bullets, score, game_over, cheat, gun
+    global player_pos, player_angle, camera_mode, min_bound, max_bound, life, missed_bullets, score, game_over, cheat, gun, cheat_move_angle
 
-    speed = 20
+    if cheat:
+        speed = 50
+    else:
+        speed = 20
+
     angle_step = 5
     if not game_over:
         if key == b'w':  # move forward
@@ -278,10 +284,10 @@ def keyboardListener(key, x, y):
                 player_pos[1] = new_y
 
 
-        elif key == b'a':  #rotate left
+        elif key == b'a' and not cheat:  #rotate left
             player_angle += angle_step
 
-        elif key == b'd': #rotate right
+        elif key == b'd' and not cheat: #rotate right
             player_angle -= angle_step
         
         elif key == b"c": #cheat mode
@@ -338,7 +344,7 @@ def specialKeyListener(key, x, y):
 
     camera_pos = (x, y, z)
 
-lastx,lasty,lastz = 0,0,0
+lastx, lasty, lastz = 0,0,0
 def setupCamera():
     glMatrixMode(GL_PROJECTION)  
     glLoadIdentity()  
@@ -346,7 +352,7 @@ def setupCamera():
     glMatrixMode(GL_MODELVIEW)  
     glLoadIdentity()
 
-    global lastx,lasty,lastz
+    global lastx, lasty, lastz
 
     if camera_mode == "third":
         x, y, z = camera_pos
@@ -358,7 +364,7 @@ def setupCamera():
         gun_right = 30
         gun_up = 40
 
-        # gun tip position
+        # camera at gun tip position
         cam_x = player_pos[0] + gun_right * math.sin(angle) - math.cos(angle) * gun_length
         cam_y = player_pos[1] - gun_right * math.cos(angle) - math.sin(angle) * gun_length
         cam_z = player_pos[2] + gun_up
@@ -371,6 +377,7 @@ def setupCamera():
             lastx = look_x
             lasty = look_y
             lastz = look_z
+        
         elif cheat:
             cam_x = 30
             cam_y = 10
@@ -389,11 +396,14 @@ def setupCamera():
 
 def enemy_player_interaction():
     global bullets, missed_bullets, score, life, game_over
-    # enemies Move towards player
+    
+    # enemies move towards player
     for e in enemies:
         dx = player_pos[0] - e['enemy_pos'][0]
         dy = player_pos[1] - e['enemy_pos'][1]
+        
         dist = math.sqrt(dx**2 + dy**2)
+        
         if dist > 1:
             e['enemy_pos'][0] += dx / dist * 0.05  # enemy move speed
             e['enemy_pos'][1] += dy / dist * 0.05
@@ -402,6 +412,7 @@ def enemy_player_interaction():
         e['scale'] += e['scale_dir']
         if e['scale'] >= 1.2 or e['scale'] <= 0.8:
             e['scale_dir'] *= -1
+    
     # enemy and player collision
     if not game_over:
         for e in enemies:
@@ -421,6 +432,7 @@ def enemy_player_interaction():
                     game_over = True
                     enemies.clear()  
                 break  
+
 def shoot():
     global bullets, missed_bullets, game_over
 
@@ -468,14 +480,11 @@ def hit_enemy():
             bullets.remove(b) 
     enemies[:] = new_enemies
 
-cheat_rotation = 0
-can_fire = True
-
 def cheat_mode():
-    global player_angle, player_pos, score, bullets, enemies, cheat_rotation, can_fire, missed_bullets
+    global player_angle, player_pos, enemies, cheat_rotation, can_fire, score, bullets, missed_bullets
 
     if cheat and not game_over:
-        # Rotate player slowly
+        # Rotate player slowly 
         rotate_speed = 1
         player_angle = (player_angle + rotate_speed) % 360
         cheat_rotation += rotate_speed
@@ -504,17 +513,18 @@ def cheat_mode():
                 dist_xy = math.sqrt(dx ** 2 + dy ** 2)
                 if dist_xy == 0:
                     continue
+                
                 dot = (dx * dir_x + dy * dir_y) / dist_xy
 
                 if dot > 0.998:
                     dz = ez - bz
-                    dist_total = math.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
-                    dir_to_enemy = [dx / dist_total, dy / dist_total, dz / dist_total]
+                    dist_total = math.sqrt(dx**2 + dy**2 + dz**2)
+                    enemy_direction = [dx / dist_total, dy / dist_total, dz / dist_total]
 
                     # Fire bullet
                     bullets.append({
                         'bullet_pos': [bx, by, bz],
-                        'dir': dir_to_enemy,
+                        'dir': enemy_direction,
                         'cheat': True 
                     })
 
@@ -525,16 +535,12 @@ def cheat_mode():
     glutPostRedisplay()
 
 
-
-
-
 def idle():
     shoot()
     hit_enemy()
     enemy_player_interaction()
     cheat_mode()
     glutPostRedisplay()
-
 
 def showScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -567,16 +573,16 @@ def main():
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)  # Double buffering, RGB color, depth test
     glutInitWindowSize(1000, 600)  # Window size
-    glutInitWindowPosition(0, 0)  # Window position
-    wind = glutCreateWindow(b"3D OpenGL Intro")  # Create the window
+    glutInitWindowPosition(250, 0)  # Window position
+    glutCreateWindow(b"Bullet Frenzy")  #window
     
-    glutDisplayFunc(showScreen)  # Register display function
-    glutKeyboardFunc(keyboardListener)  # Register keyboard listener
+    glutDisplayFunc(showScreen)  #display function
+    glutKeyboardFunc(keyboardListener)  #keyboard listener
     glutSpecialFunc(specialKeyListener)
     glutMouseFunc(mouseListener)
-    glutIdleFunc(idle)  # Register the idle function to move the bullet automatically
+    glutIdleFunc(idle)  #idle function to move the bullet automatically
 
-    glutMainLoop()  # Enter the GLUT main loop
+    glutMainLoop()  #GLUT main loop
 
 if __name__ == "__main__":
     main()
