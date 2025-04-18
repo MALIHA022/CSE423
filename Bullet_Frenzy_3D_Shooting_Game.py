@@ -38,6 +38,7 @@ gun = False
 cheat_rotation = 0
 can_fire = True
 cheat_move_angle = 0
+cheat_cam_offset = [-100, 0, 60]
 
 def draw_text(x, y, text, font = GLUT_BITMAP_HELVETICA_18): # type: ignore
     glColor3f(1,1,1)
@@ -250,7 +251,8 @@ def keyboardListener(key, x, y):
     """
     Handles keyboard inputs for player movement, gun rotation, camera updates, and cheat mode toggles.
     """
-    global player_pos, player_angle, camera_mode, min_bound, max_bound, life, missed_bullets, score, game_over, cheat, gun, cheat_move_angle
+    global player_pos, player_angle, camera_mode, min_bound, max_bound, cheat_move_angle, cheat_cam_offset
+    global life, missed_bullets, score, game_over, cheat, gun 
 
     if cheat:
         speed = 50
@@ -270,6 +272,10 @@ def keyboardListener(key, x, y):
             if min_bound <= new_x <= max_bound and min_bound <= new_y <= max_bound:
                 player_pos[0] = new_x
                 player_pos[1] = new_y
+                
+                if camera_mode == "first" and cheat and not gun:
+                    cheat_cam_offset[0] += dx
+                    cheat_cam_offset[1] += dy
 
         elif key == b's':  # move backward
             angle = math.radians(player_angle)
@@ -282,6 +288,10 @@ def keyboardListener(key, x, y):
             if min_bound <= new_x <= max_bound and min_bound <= new_y <= max_bound:
                 player_pos[0] = new_x
                 player_pos[1] = new_y
+
+                if camera_mode == "first" and cheat and not gun:
+                    cheat_cam_offset[0] += dx
+                    cheat_cam_offset[1] += dy
 
 
         elif key == b'a' and not cheat:  #rotate left
@@ -331,16 +341,16 @@ def specialKeyListener(key, x, y):
     x, y, z = camera_pos
     if not game_over:
         if key == GLUT_KEY_UP: # Move camera up
-            y += 1
+            y += 2
 
         if key == GLUT_KEY_DOWN: # Move camera down 
-            y-= 1
+            y-= 2
 
         if key == GLUT_KEY_LEFT: # Move camera left
-            x -= 1
+            x -= 2
 
         if key == GLUT_KEY_RIGHT:  # Move camera right 
-            x += 1
+            x += 2
 
     camera_pos = (x, y, z)
 
@@ -378,14 +388,16 @@ def setupCamera():
             lasty = look_y
             lastz = look_z
         
-        elif cheat:
-            cam_x = 30
-            cam_y = 15
-            cam_z = 5
+        elif cheat and not gun:
+            cam_x = cheat_cam_offset[0] + 160
+            cam_y = cheat_cam_offset[1] 
+            cam_z = (player_pos[2] + cheat_cam_offset[2]) -10
 
-            look_x = lastx
-            look_y = lasty
-            look_z = lastz
+
+            look_x = player_pos[0] 
+            look_y = player_pos[1] 
+            look_z = player_pos[2] 
+
 
         else:
             look_x = cam_x + (-math.cos(angle)) * 100
