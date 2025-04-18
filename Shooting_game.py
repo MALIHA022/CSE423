@@ -380,7 +380,7 @@ def setupCamera():
         
         elif cheat:
             cam_x = 30
-            cam_y = 10
+            cam_y = 15
             cam_z = 5
 
             look_x = lastx
