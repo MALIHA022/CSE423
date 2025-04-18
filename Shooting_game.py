@@ -461,12 +461,55 @@ def hit_enemy():
             bullets.remove(b) 
     enemies[:] = new_enemies
     
+
 def cheat_mode():
-    global player_angle
+    global player_angle, player_pos, score, bullets, enemies
 
     if cheat and not game_over:
         player_angle += 1
         player_angle %= 360
+
+        rad = math.radians(player_angle)
+        dir_x = -math.cos(rad)
+        dir_y = -math.sin(rad)
+
+
+        # Gun tip offset
+        gun_length = 140 
+        gun_right = 50
+        gun_up = 10
+
+        bx = player_pos[0] + gun_right * math.sin(rad) + dir_x * gun_length
+        by = player_pos[1] - gun_right * math.cos(rad) + dir_y * gun_length
+        bz = player_pos[2] + gun_up
+
+        for e in enemies[:]:
+            ex, ey, ez = e["enemy_pos"]
+
+            # Vector from gun tip to enemy
+            gun_to_enemy = [ex - bx, ey - by]
+            dist = math.sqrt(gun_to_enemy[0]**2 + gun_to_enemy[1]**2)
+
+            if dist == 0:
+                continue
+
+            # Dot product to check alignment (1 = exact front, 0 = perpendicular)
+            dot = dir_x * gun_to_enemy[0]/dist + dir_y * gun_to_enemy[1]/dist
+
+            if dot > 0.98:  # ~within 10 degrees cone in front
+                dx, dy, dz = ex - bx, ey - by, ez - bz
+                length = math.sqrt(dx**2 + dy**2 + dz**2)
+                
+                if length == 0:
+                    continue
+                dir_to_enemy = (dx/length, dy/length, dz/length)
+
+                bullets.append({'bullet_pos': [bx, by, bz], 'dir': dir_to_enemy})
+                score += 1
+                enemies.remove(e)
+                enemies.append(spawn_enemy())
+                break
+
     glutPostRedisplay()
 
 
