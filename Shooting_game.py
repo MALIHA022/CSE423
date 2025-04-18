@@ -9,15 +9,13 @@ camera_pos = (0,500,500)
 
 fovY = 120  
 GRID_LENGTH = 100  
-GRID_SIZE = 12
+GRID_SIZE = 14
 rand_var = 423
 
 # Game state
 player_pos = [0, 0, 0]
 player_angle = 0
 camera_mode = "third"  
-cheat_mode = False
-cheat_vision = False
 game_over = False
 
 # Bullets
@@ -34,7 +32,12 @@ score = 0
 min_bound = -GRID_SIZE * GRID_LENGTH // 2
 max_bound = GRID_SIZE * GRID_LENGTH // 2
 
-def draw_text(x, y, text, font = GLUT_BITMAP_HELVETICA_12): # type: ignore
+#cheat
+cheat = False
+gun = False
+cheat_rotate = 1.0
+
+def draw_text(x, y, text, font = GLUT_BITMAP_HELVETICA_18): # type: ignore
     glColor3f(1,1,1)
     glMatrixMode(GL_PROJECTION)
     glPushMatrix()
@@ -82,14 +85,14 @@ def draw_border_walls():
     glBegin(GL_QUADS)
 
     # Bottom wall
-    glColor3f(1, 1, 1)
+    glColor3f(0.01, 0.9, 1)
     glVertex3f(-offset, -offset, 0)
     glVertex3f(offset, -offset, 0)
     glVertex3f(offset, -offset, wall_height)
     glVertex3f(-offset, -offset, wall_height)
 
     # Top wall
-    glColor3f(0.01, 0.9, 1)
+    glColor3f(1, 1, 1)
     glVertex3f(-offset, offset, 0)
     glVertex3f(offset, offset, 0)
     glVertex3f(offset, offset, wall_height)
@@ -244,7 +247,7 @@ def keyboardListener(key, x, y):
     """
     Handles keyboard inputs for player movement, gun rotation, camera updates, and cheat mode toggles.
     """
-    global player_pos, player_angle, camera_mode, min_bound, max_bound, life, missed_bullets, score, game_over
+    global player_pos, player_angle, camera_mode, min_bound, max_bound, life, missed_bullets, score, game_over, cheat, gun
 
     speed = 20
     angle_step = 5
@@ -280,15 +283,20 @@ def keyboardListener(key, x, y):
         elif key == b'd': #rotate right
             player_angle -= angle_step
         
-        # elif key == b"c": #cheat mode
-        #     if camera_mode == "third":
-        #         camera_mode = "first"
-        #     else:
-        #         camera_mode = "third"
+        elif key == b"c": #cheat mode
+            cheat = not cheat
+            if cheat:
+                cheat_mode()
         
+        elif key == b"v": #toggle automatic gun cam
+            if camera_mode == "first" and cheat:
+                gun = not gun
+                
     if key == b'r' and game_over: #restart
         bullets.clear()
         enemies.clear()
+        cheat = False
+        camera_mode = "third"
         for _ in range(num_enemies):
             enemy = spawn_enemy()
             enemy['collide'] = False
@@ -325,6 +333,7 @@ def specialKeyListener(key, x, y):
 
     camera_pos = (x, y, z)
 
+lastx,lasty,lastz = 0,0,0
 def setupCamera():
     glMatrixMode(GL_PROJECTION)  
     glLoadIdentity()  
@@ -332,10 +341,13 @@ def setupCamera():
     glMatrixMode(GL_MODELVIEW)  
     glLoadIdentity()
 
+    global lastx,lasty,lastz
+
     if camera_mode == "third":
         x, y, z = camera_pos
-        gluLookAt(x,y,z, 0,0,0, 0,0,1)  
-    else:
+        gluLookAt(x,y,z, 0,0,0, 0,0,1)
+
+    if camera_mode == "first":
         angle = math.radians(player_angle)
         gun_length = 50
         gun_right = 30
@@ -346,14 +358,65 @@ def setupCamera():
         cam_y = player_pos[1] - gun_right * math.cos(angle) - math.sin(angle) * gun_length
         cam_z = player_pos[2] + gun_up
 
-        look_x = cam_x + (-math.cos(angle)) * 100
-        look_y = cam_y + (-math.sin(angle)) * 100
-        look_z = cam_z
+        if cheat and gun:
+            look_x = cam_x + (-math.cos(angle)) * 100
+            look_y = cam_y + (-math.sin(angle)) * 100
+            look_z = cam_z
+
+            lastx = look_x
+            lasty = look_y
+            lastz = look_z
+        elif cheat:
+            cam_x = 30
+            cam_y = 10
+            cam_z = 5
+
+            look_x = lastx
+            look_y = lasty
+            look_z = lastz
+
+        else:
+            look_x = cam_x + (-math.cos(angle)) * 100
+            look_y = cam_y + (-math.sin(angle)) * 100
+            look_z = cam_z
 
         gluLookAt(cam_x, cam_y, cam_z, look_x, look_y, look_z, 0, 0, 1)  
 
-def game_setup():
+def enemy_player_interaction():
     global bullets, missed_bullets, score, life, game_over
+    # enemies Move towards player
+    for e in enemies:
+        dx = player_pos[0] - e['enemy_pos'][0]
+        dy = player_pos[1] - e['enemy_pos'][1]
+        dist = math.sqrt(dx**2 + dy**2)
+        if dist > 1:
+            e['enemy_pos'][0] += dx / dist * 0.05  # enemy move speed
+            e['enemy_pos'][1] += dy / dist * 0.05
+
+        # Pulse effect
+        e['scale'] += e['scale_dir']
+        if e['scale'] >= 1.2 or e['scale'] <= 0.8:
+            e['scale_dir'] *= -1
+    # enemy and player collision
+    if not game_over:
+        for e in enemies:
+            ex, ey, ez = e["enemy_pos"]
+            px, py, pz = player_pos
+    
+            # Collision detection
+            collision = abs(px - ex) < 100 and abs(py - ey) < 100 and abs(pz - ez) < 100
+    
+            if collision:
+                if life > 0:
+                    life -= 1
+                    enemies.remove(e)     
+                    enemies.append(spawn_enemy()) 
+                else:
+                    game_over = True
+                    enemies.clear()  
+                break  
+def shoot():
+    global bullets, missed_bullets, game_over
 
     # fire bullets
     for bullet in bullets:
@@ -373,21 +436,8 @@ def game_setup():
         game_over = True
         enemies.clear()
 
-    # enemies Move towards player
-    for e in enemies:
-        dx = player_pos[0] - e['enemy_pos'][0]
-        dy = player_pos[1] - e['enemy_pos'][1]
-        dist = math.sqrt(dx**2 + dy**2)
-        if dist > 1:
-            e['enemy_pos'][0] += dx / dist * 0.05  # Move speed
-            e['enemy_pos'][1] += dy / dist * 0.05
-
-        # Pulse effect
-        e['scale'] += e['scale_dir']
-        if e['scale'] >= 1.2 or e['scale'] <= 0.8:
-            e['scale_dir'] *= -1
-    
-    #hit enemies
+def hit_enemy():
+    global bullets, missed_bullets, score, life, game_over
     new_enemies = []
     hit_bullets = []
 
@@ -411,28 +461,20 @@ def game_setup():
             bullets.remove(b) 
     enemies[:] = new_enemies
     
-    
-    # enemy and player collision
-    if not game_over:
-        for e in enemies:
-            ex, ey, ez = e["enemy_pos"]
-            px, py, pz = player_pos
-    
-            # Collision detection
-            collision = abs(px - ex) < 100 and abs(py - ey) < 100 and abs(pz - ez) < 100
-    
-            if collision:
-                if life > 0:
-                    life -= 1
-                    enemies.remove(e)     
-                    enemies.append(spawn_enemy()) 
-                else:
-                    game_over = True
-                    enemies.clear()  
-                break  
+def cheat_mode():
+    global player_angle
+
+    if cheat and not game_over:
+        player_angle += 1
+        player_angle %= 360
+    glutPostRedisplay()
+
 
 def idle():
-    game_setup()
+    shoot()
+    hit_enemy()
+    enemy_player_interaction()
+    cheat_mode()
     glutPostRedisplay()
 
 
