@@ -433,9 +433,9 @@ def shoot():
     while b < len(bullets):
         x, y, z = bullets[b]['bullet_pos']
         if abs(x) >= 600 or abs(y) >= 600:
-            bullets.pop(b)
             missed_bullets += 1
             print(f"Bullet missed: {missed_bullets}")
+            bullets.pop(b)
         else:
             b += 1
 
@@ -467,20 +467,29 @@ def hit_enemy():
         if b in bullets:
             bullets.remove(b) 
     enemies[:] = new_enemies
-    
+
+cheat_rotation = 0
+can_fire = True
+
 def cheat_mode():
-    global player_angle, player_pos, score, bullets, enemies
+    global player_angle, player_pos, score, bullets, enemies, cheat_rotation, can_fire, missed_bullets
 
     if cheat and not game_over:
-        player_angle += 1
-        player_angle %= 360
+        # Rotate player slowly
+        rotate_speed = 1
+        player_angle = (player_angle + rotate_speed) % 360
+        cheat_rotation += rotate_speed
+
+        if cheat_rotation >= 180:
+            cheat_rotation = 0
+            can_fire = True
 
         rad = math.radians(player_angle)
         dir_x = -math.cos(rad)
         dir_y = -math.sin(rad)
 
-        # Gun tip offset
-        gun_length = 140 
+        # Gun tip position
+        gun_length = 140
         gun_right = 50
         gun_up = 10
 
@@ -488,36 +497,35 @@ def cheat_mode():
         by = player_pos[1] - gun_right * math.cos(rad) + dir_y * gun_length
         bz = player_pos[2] + gun_up
 
-        for e in enemies[:]:
-            ex, ey, ez = e["enemy_pos"]
-
-            # Vector from gun tip to enemy
-            gun_to_enemy = [ex - bx, ey - by]
-            dist = math.sqrt(gun_to_enemy[0]**2 + gun_to_enemy[1]**2)
-
-            if dist == 0:
-                continue
-
-            # Dot product to check alignment (1 = exact front, 0 = perpendicular)
-            dot = dir_x * gun_to_enemy[0]/dist + dir_y * gun_to_enemy[1]/dist
-
-            if dot > 0.98:  # ~within 10 degrees cone in front
-                dx, dy, dz = ex - bx, ey - by, ez - bz
-                length = math.sqrt(dx**2 + dy**2 + dz**2)
-                
-                if length == 0:
+        if can_fire:
+            for e in enemies:
+                ex, ey, ez = e["enemy_pos"]
+                dx, dy = ex - bx, ey - by
+                dist_xy = math.sqrt(dx ** 2 + dy ** 2)
+                if dist_xy == 0:
                     continue
-                dir_to_enemy = (dx/length, dy/length, dz/length)
+                dot = (dx * dir_x + dy * dir_y) / dist_xy
 
-                bullets.append({'bullet_pos': [bx, by, bz], 'dir': dir_to_enemy})
-                print("Player bullet fired!")
+                if dot > 0.998:  # Almost perfectly aligned
+                    dz = ez - bz
+                    dist_total = math.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
+                    dir_to_enemy = [dx / dist_total, dy / dist_total, dz / dist_total]
 
-                score += 1
-                enemies.remove(e)
-                enemies.append(spawn_enemy())
-                break
+                    # Fire bullet (tracked as cheat)
+                    bullets.append({
+                        'bullet_pos': [bx, by, bz],
+                        'dir': dir_to_enemy,
+                        'cheat': True  # optional for tracking
+                    })
+
+                    can_fire = False
+                    print("Cheat mode bullet fired!")
+                    break
 
     glutPostRedisplay()
+
+
+
 
 
 def idle():
