@@ -480,7 +480,7 @@ def cheat_mode():
         player_angle = (player_angle + rotate_speed) % 360
         cheat_rotation += rotate_speed
 
-        if cheat_rotation >= 180:
+        if cheat_rotation >= 30:
             cheat_rotation = 0
             can_fire = True
 
@@ -506,16 +506,16 @@ def cheat_mode():
                     continue
                 dot = (dx * dir_x + dy * dir_y) / dist_xy
 
-                if dot > 0.998:  # Almost perfectly aligned
+                if dot > 0.998:
                     dz = ez - bz
                     dist_total = math.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
                     dir_to_enemy = [dx / dist_total, dy / dist_total, dz / dist_total]
 
-                    # Fire bullet (tracked as cheat)
+                    # Fire bullet
                     bullets.append({
                         'bullet_pos': [bx, by, bz],
                         'dir': dir_to_enemy,
-                        'cheat': True  # optional for tracking
+                        'cheat': True 
                     })
 
                     can_fire = False
