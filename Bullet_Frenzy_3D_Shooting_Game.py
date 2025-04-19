@@ -242,7 +242,7 @@ def mouseListener(button, state, x, y):
             camera_mode = "first"
         else:
             camera_mode = "third"
-            print(f"Switched to {camera_mode}-person mode")
+        print(f"Switched to {camera_mode}-person mode")
         
         glutPostRedisplay()
   
