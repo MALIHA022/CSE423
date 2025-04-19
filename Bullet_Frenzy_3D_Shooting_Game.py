@@ -541,7 +541,7 @@ def cheat_mode():
                     })
 
                     can_fire = False
-                    print("Cheat mode bullet fired!")
+                    print("Player bullet fired!")
                     break
 
     glutPostRedisplay()
